@@ -6,4 +6,4 @@ class APIRequest(BaseModel):
     questions: List[str]
     
 class AnswerResponse(BaseModel):
-    answer: List[str]
+    answers: List[str]

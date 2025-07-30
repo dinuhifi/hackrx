@@ -4,6 +4,7 @@ from google import genai
 from google.genai import types
 import httpx
 from models import AnswerResponse
+import json
 
 def get_answers(documents, questions):
     load_dotenv()
@@ -25,5 +26,5 @@ def get_answers(documents, questions):
         'response_mime_type': 'application/json',
         'response_schema': AnswerResponse,
     })
-    print(response.text)
-    return response.to_json_dict()
+    
+    return json.loads(response.text)
