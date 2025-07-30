@@ -9,4 +9,5 @@ services:
     envVars:
       - key: TEAM_API_KEY
         sync: false
-      - key: 
+      - key: GEMINI_API_KEY
+        sync: false
