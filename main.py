@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request, status
 from dotenv import load_dotenv
 from models import APIRequest, AnswerResponse
 import os
-from agent import create_vector_store_from_url, create_rag_chain
+from agent import create_vector_store_from_url, create_rag_query_engine
 import asyncio
 
 load_dotenv()
@@ -50,7 +50,7 @@ async def process_policy_questions(payload: APIRequest):
 
     doc_url = payload.documents
     
-    if doc_url in vector_store_cache:
+    '''if doc_url in vector_store_cache:
         print(f"CACHE HIT: Using cached vector store for {doc_url}")
         vectorstore = vector_store_cache[doc_url]
     else:
@@ -72,4 +72,44 @@ async def process_policy_questions(payload: APIRequest):
         return AnswerResponse(answers=answers)
     except Exception as e:
         print(f"An error occurred during RAG chain invocation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))'''
+        
+        
+    if doc_url in vector_store_cache:
+        print(f"CACHE HIT: Using cached vector store for {doc_url}")
+        vector_store_index = vector_store_cache[doc_url]
+    else:
+        print(f"CACHE MISS: Building new vector store for {doc_url}")
+        # Call the LlamaIndex function to create the vector store
+        vector_store_index = create_vector_store_from_url(doc_url)
+        if not vector_store_index:
+            raise HTTPException(
+                status_code=500, 
+                detail="Failed to create vector store from document URL."
+            )
+        vector_store_cache[doc_url] = vector_store_index
+
+    try:
+        # Create the RAG query engine for answering questions
+        rag_query_engine = create_rag_query_engine(vector_store_index)
+
+        # Create a list of tasks for parallel processing
+        tasks = [rag_query_engine.aquery(q) for q in payload.questions]
+        
+        print(f"Processing {len(tasks)} questions in parallel...")
+        
+        # Await all the tasks to complete
+        results = await asyncio.gather(*tasks)
+        print("All questions processed.")
+
+        # Extract the answers from the LlamaIndex response objects
+        answers = [str(res) for res in results]
+        
+        print(f"Generated answers: {answers}")
+        return AnswerResponse(answers=answers)
+    except Exception as e:
+        print(f"An error occurred during LlamaIndex query invocation: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Internal Server Error: {str(e)}"
+        )
