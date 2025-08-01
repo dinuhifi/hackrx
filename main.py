@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from dotenv import load_dotenv
-from lancedb import vector
 from models import APIRequest, AnswerResponse
 import os
 from agent import create_vector_store_from_url, create_rag_chain
