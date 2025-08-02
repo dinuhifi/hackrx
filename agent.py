@@ -3,7 +3,7 @@ import requests
 import hashlib
 from dotenv import load_dotenv
 from tempfile import NamedTemporaryFile
-from typing import List, Optional
+import time
 
 from llama_index.llms.gemini import Gemini
 from llama_index.embeddings.gemini import GeminiEmbedding
@@ -65,6 +65,12 @@ def create_pinecone_index_if_not_exists(index_name: str, dimension: int = 768):
                 region="us-east-1"
             )
         )
+        
+        # Wait for the index to be ready
+        while not pc.describe_index(index_name).status['ready']:
+            print(f"Waiting for index '{index_name}' to be ready...")
+            time.sleep(1)  # Wait for 5 seconds before checking again
+        
         print(f"Pinecone index '{index_name}' created successfully.")
     else:
         print(f"Pinecone index '{index_name}' already exists.")
@@ -126,6 +132,31 @@ def create_vector_store_from_url_pinecone(doc_url: str) -> VectorStoreIndex:
         storage_context=storage_context
     )
     print("Vector store index created successfully in Pinecone.")
+    
+    num_vectors_expected = len(docs)
+    retries = 0
+    max_retries = 10  # Arbitrary limit to prevent infinite loops
+    while True:
+        try:
+            index_stats = pinecone_index.describe_index_stats()
+            vector_count = index_stats.total_vector_count
+            print(f"Pinecone vector count: {vector_count} / {num_vectors_expected}")
+
+            if vector_count >= num_vectors_expected:
+                print("All vectors are available in Pinecone. Continuing...")
+                break
+            
+            if retries >= max_retries:
+                print("Max retries reached. Pinecone index might not be fully populated.")
+                break
+                
+        except Exception as e:
+            print(f"Error while checking Pinecone index stats: {e}")
+            if retries >= max_retries:
+                raise
+        
+        retries += 1
+        time.sleep(3)
 
     return vector_store_index
 
@@ -175,7 +206,7 @@ def create_rag_query_engine(index: VectorStoreIndex):
 
     return query_engine
 
-def cleanup_pinecone_indexes(keep_recent: int = 5):
+def cleanup_pinecone_indexes():
     """
     Optional: Clean up old Pinecone indexes to manage costs.
     Keeps only the most recent 'keep_recent' indexes.
@@ -188,6 +219,6 @@ def cleanup_pinecone_indexes(keep_recent: int = 5):
     hackrx_indexes.sort(key=lambda x: x.created_at, reverse=True)
     
     # Delete old indexes
-    for idx in hackrx_indexes[keep_recent:]:
+    for idx in hackrx_indexes:
         print(f"Deleting old Pinecone index: {idx.name}")
         pc.delete_index(idx.name)

@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Request, status
-from agent import create_vector_store_from_url_pinecone, create_rag_query_engine
+from agent import create_vector_store_from_url_pinecone, create_rag_query_engine, cleanup_pinecone_indexes
 from models import APIRequest, AnswerResponse
 from dotenv import load_dotenv
 import os
@@ -71,6 +71,9 @@ async def process_policy_questions(payload: APIRequest):
         answers = [str(res) for res in results]
         
         print(f"Generated answers: {answers}")
+        
+        cleanup_pinecone_indexes()  # Clean up old indexes
+        
         return AnswerResponse(answers=answers)
     except Exception as e:
         print(f"An error occurred during LlamaIndex query invocation: {e}")
