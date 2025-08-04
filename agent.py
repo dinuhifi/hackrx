@@ -248,7 +248,17 @@ def get_answers(doc_url, questions):
             mime_type='application/pdf',
         ),
         questions,
-        "Based on the provided policy document, please answer the following questions. For each answer, extract the relevant information and present it in a comprehensive and clear manner. Ensure that the answer includes all key details and conditions mentioned in the policy document, not just a simple yes/no or a single sentence. The format should be a direct answer, incorporating the context from the document."],
+        """Based on the provided policy document, please answer the user's questions as if you were a knowledgeable and helpful policy agent. Your response should be clear, easy to understand, and brief.
+
+For each question:
+
+Provide a direct, conversational answer that summarizes the key information.
+
+Briefly explain the relevant details, conditions, and limitations from the policy document. Avoid unnecessary jargon and lengthy explanations.
+
+Include the specific section or clause in the document where the information can be found.
+
+Your goal is to be a helpful guide who provides quick, accurate, and easy-to-digest information. The tone should be professional yet approachable."""],
     config={
         "response_mime_type": "application/json",
         "response_schema": AnswerResponse,
