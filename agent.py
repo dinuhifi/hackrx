@@ -1,4 +1,4 @@
-import os
+'''import os
 import requests
 import hashlib
 from dotenv import load_dotenv
@@ -221,4 +221,37 @@ def cleanup_pinecone_indexes():
     # Delete old indexes
     for idx in hackrx_indexes:
         print(f"Deleting old Pinecone index: {idx.name}")
-        pc.delete_index(idx.name)
+        pc.delete_index(idx.name)'''
+
+
+from google import genai
+from google.genai import types
+import httpx
+from models import AnswerResponse
+from dotenv import load_dotenv
+import json
+
+load_dotenv()
+
+
+client = genai.Client()
+
+def get_answers(doc_url, questions):
+    
+    doc_data = httpx.get(doc_url).content
+
+    response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=[
+        types.Part.from_bytes(
+            data=doc_data,
+            mime_type='application/pdf',
+        ),
+        questions,
+        "Based on the provided policy document, please answer the following questions. For each answer, extract the relevant information and present it in a comprehensive and clear manner. Ensure that the answer includes all key details and conditions mentioned in the policy document, not just a simple yes/no or a single sentence. The format should be a direct answer, incorporating the context from the document."],
+    config={
+        "response_mime_type": "application/json",
+        "response_schema": AnswerResponse,
+    })
+    print(response.text)
+    return json.loads(response.text)

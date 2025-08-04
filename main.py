@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, Request, status
-from agent import create_vector_store_from_url_pinecone, create_rag_query_engine, cleanup_pinecone_indexes
+#from agent import create_vector_store_from_url_pinecone, create_rag_query_engine, cleanup_pinecone_indexes
 from models import APIRequest, AnswerResponse
 from dotenv import load_dotenv
 import os
 import asyncio
+from agent import get_answers
 
 load_dotenv()
 TEAM_API_KEY = os.getenv("TEAM_API_KEY")
@@ -43,9 +44,11 @@ app = FastAPI(
 @app.post("/hackrx/run", dependencies=[Depends(verify_api_key)])
 async def process_policy_questions(payload: APIRequest):
 
-    doc_url = payload.documents
+    docs = payload.documents
+    questions = payload.questions
+    return get_answers(docs, questions)
         
-    print(f"Creating/accessing Pinecone vector store for {doc_url}")
+    '''print(f"Creating/accessing Pinecone vector store for {doc_url}")
     # Use Pinecone cloud storage instead of RAM cache
     vector_store_index = create_vector_store_from_url_pinecone(doc_url)
     if not vector_store_index:
@@ -80,4 +83,4 @@ async def process_policy_questions(payload: APIRequest):
         raise HTTPException(
             status_code=500, 
             detail=f"Internal Server Error: {str(e)}"
-        )
+        )'''
